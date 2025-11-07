@@ -3,8 +3,9 @@ import BookCard from './BookCard';
 export default function BookGrid({ books, onView, onEdit, onDelete }) {
   if (!books.length) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center">
-        <p className="text-white/80">Your shelves are quiet. Add your first tome to awaken the stacks.</p>
+      <div className="rounded-2xl border border-white/15 bg-white/5 p-10 text-center">
+        <div className="mx-auto mb-4 h-10 w-10 rounded-full bg-gradient-to-tr from-blue-200/80 to-amber-200/80" />
+        <p className="text-blue-100/90">Your astral shelves await. Add your first star-bound tome.</p>
       </div>
     );
   }
