@@ -1,159 +1,171 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Plus, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+
 import Navbar from './components/Navbar';
+import Hero from './components/Hero';
 import BookGrid from './components/BookGrid';
 import BookForm from './components/BookForm';
-import { Search } from 'lucide-react';
 
-function App() {
-  // Temporary client-side state to wire up UI. Backend endpoints can replace these handlers later.
-  const [route, setRoute] = useState('home'); // 'home' | 'add' | 'edit' | 'detail'
+export default function App() {
   const [books, setBooks] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [query, setQuery] = useState('');
-  const [alert, setAlert] = useState(null); // {type: 'success'|'error', message}
-
-  const showAlert = (type, message) => {
-    setAlert({ type, message });
-    setTimeout(() => setAlert(null), 3000);
-  };
+  const [search, setSearch] = useState('');
+  const [mode, setMode] = useState('list'); // 'list' | 'create' | 'edit'
+  const [current, setCurrent] = useState(null);
+  const [viewing, setViewing] = useState(null);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return books;
+    if (!search.trim()) return books;
+    const q = search.toLowerCase();
     return books.filter((b) =>
-      [b.title, b.author, b.genre].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))
+      [b.title, b.author, b.notes].some((v) => (v || '').toLowerCase().includes(q))
     );
-  }, [books, query]);
+  }, [books, search]);
 
-  const handleCreate = async (values) => {
-    const id = crypto.randomUUID();
-    const coverUrl = values.coverFile ? URL.createObjectURL(values.coverFile) : values.coverUrl || '';
-    const pdfUrl = values.pdfFile ? URL.createObjectURL(values.pdfFile) : values.pdfUrl || '';
-    const newBook = { id, title: values.title, author: values.author, genre: values.genre, description: values.description, coverUrl, pdfUrl };
-    setBooks((prev) => [newBook, ...prev]);
-    showAlert('success', 'Your tome has been added to the library');
-    setRoute('home');
+  const startCreate = () => {
+    setCurrent(null);
+    setMode('create');
   };
 
-  const handleEdit = async (values) => {
-    if (!selected) return;
-    const coverUrl = values.coverFile ? URL.createObjectURL(values.coverFile) : (values.coverUrl || selected.coverUrl || '');
-    const pdfUrl = values.pdfFile ? URL.createObjectURL(values.pdfFile) : (values.pdfUrl || selected.pdfUrl || '');
-    setBooks((prev) => prev.map((b) => (b.id === selected.id ? { ...b, ...values, coverUrl, pdfUrl } : b)));
-    showAlert('success', 'The manuscript was updated');
-    setRoute('home');
-    setSelected(null);
+  const startEdit = (b) => {
+    setCurrent(b);
+    setMode('edit');
   };
 
-  const handleDelete = async (book) => {
-    setBooks((prev) => prev.filter((b) => b.id !== book.id));
-    showAlert('success', 'The book was removed from the shelf');
+  const saveBook = (data) => {
+    if (mode === 'edit') {
+      setBooks((prev) => prev.map((b) => (b.id === data.id ? { ...b, ...data } : b)));
+    } else {
+      setBooks((prev) => [{ ...data }, ...prev]);
+    }
+    setMode('list');
+    setCurrent(null);
   };
 
-  const goDetail = (book) => {
-    setSelected(book);
-    setRoute('detail');
-  };
-  const goEdit = (book) => {
-    setSelected(book);
-    setRoute('edit');
+  const removeBook = (b) => {
+    setBooks((prev) => prev.filter((x) => x.id !== b.id));
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-amber-100 text-slate-900 selection:bg-amber-200/70 selection:text-slate-900">
-      <Navbar current={route === 'add' ? 'add' : 'home'} onNavigate={setRoute} />
+    <div className="min-h-screen bg-gradient-to-b from-[#0b0b1a] via-[#0a0a18] to-[#0b0b1a] text-white">
+      {/* Decorative ethereal glows */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-20 -left-24 h-96 w-96 rounded-full bg-fuchsia-500/10 blur-3xl" />
+        <div className="absolute top-40 -right-24 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-blue-400/10 blur-3xl" />
+      </div>
 
-      <main className="max-w-6xl mx-auto px-4 pb-16">
-        {/* Alerts */}
-        {alert && (
-          <div className={`mt-6 rounded-xl border px-4 py-3 shadow-sm ${alert.type === 'success' ? 'bg-amber-50 text-amber-900 border-amber-200' : 'bg-rose-50 text-rose-900 border-rose-200'}`}>
-            {alert.message}
+      <Navbar onSearch={setSearch} />
+      <Hero />
+
+      <main className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-medium tracking-wide text-white/90">Your Private Stacks</h2>
+            <p className="text-sm text-white/60">Curate, annotate, and tend to your luminous catalog.</p>
           </div>
-        )}
+          {mode === 'list' && (
+            <button onClick={startCreate} className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 px-4 py-2 shadow hover:shadow-fuchsia-500/30 transition-transform hover:-translate-y-0.5">
+              <Plus className="h-4 w-4" />
+              Add Tome
+            </button>
+          )}
+        </div>
 
-        {/* Home / Grid */}
-        {route === 'home' && (
-          <section className="mt-8 space-y-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <h2 className="text-2xl md:text-3xl font-serif tracking-wide text-slate-900">
-                The Grand Library
-              </h2>
-              <div className="relative w-full md:w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-700/60" size={18} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Seek by title, author, or genre"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-amber-200 bg-white/80 backdrop-blur focus:border-amber-400 focus:ring-2 focus:ring-amber-300 shadow-sm transition"
-                />
+        <AnimatePresence mode="wait">
+          {mode !== 'list' ? (
+            <motion.div
+              key="form"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25 }}
+              className="relative"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg text-white/90">
+                  {mode === 'create' ? 'Inscribe a New Tome' : 'Edit Tome'}
+                </h3>
+                <button onClick={() => setMode('list')} className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-white/80 hover:text-white">
+                  <X className="h-4 w-4" /> Close
+                </button>
               </div>
-            </div>
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
-            <BookGrid books={filtered} onView={goDetail} onEdit={goEdit} onDelete={handleDelete} />
-          </section>
-        )}
+              <BookForm initial={current} onSubmit={saveBook} onCancel={() => setMode('list')} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="grid"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25 }}
+            >
+              <BookGrid
+                books={filtered}
+                onView={(b) => setViewing(b)}
+                onEdit={startEdit}
+                onDelete={removeBook}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
 
-        {/* Add */}
-        {route === 'add' && (
-          <section className="mt-8">
-            <h2 className="text-2xl md:text-3xl font-serif tracking-wide text-slate-900 mb-1">Add a New Volume</h2>
-            <p className="text-amber-800/80 mb-4">Inscribe the details below to place a new tome upon the shelf.</p>
-            <BookForm mode="create" onSubmit={handleCreate} onCancel={() => setRoute('home')} />
-          </section>
-        )}
-
-        {/* Edit */}
-        {route === 'edit' && selected && (
-          <section className="mt-8">
-            <h2 className="text-2xl md:text-3xl font-serif tracking-wide text-slate-900 mb-1">Revise Manuscript</h2>
-            <p className="text-amber-800/80 mb-4">Polish the words and renew the cover.</p>
-            <BookForm mode="edit" defaultValues={selected} onSubmit={handleEdit} onCancel={() => { setRoute('home'); setSelected(null); }} />
-          </section>
-        )}
-
-        {/* Detail */}
-        {route === 'detail' && selected && (
-          <section className="mt-8">
-            <button onClick={() => setRoute('home')} className="text-sm text-amber-800 hover:text-amber-900 hover:underline mb-4">← Return to shelves</button>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-              <div className="md:col-span-2">
-                <div className="aspect-[3/4] w-full rounded-xl overflow-hidden bg-amber-50 border border-amber-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-                  {selected.coverUrl ? (
-                    <img src={selected.coverUrl} alt={selected.title} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center text-amber-800/50">No cover</div>
+      {/* Quick view modal */}
+      <AnimatePresence>
+        {viewing && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+              className="relative w-full max-w-2xl rounded-2xl border border-white/10 bg-gradient-to-b from-slate-950/90 to-[#0b0b1a]/90 backdrop-blur p-4 sm:p-6"
+            >
+              <button onClick={() => setViewing(null)} className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/15 border border-white/10">
+                <X className="h-4 w-4 text-white" />
+              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 sm:gap-6">
+                <div className="sm:col-span-2 rounded-xl overflow-hidden border border-white/10 bg-white/5">
+                  <div className="aspect-[3/4] bg-gradient-to-b from-indigo-950 to-slate-950">
+                    {viewing.cover && (
+                      <img src={viewing.cover} alt={viewing.title} className="h-full w-full object-cover" />
+                    )}
+                  </div>
+                </div>
+                <div className="sm:col-span-3">
+                  <h4 className="text-2xl font-medium text-white">{viewing.title}</h4>
+                  <p className="text-white/70">by {viewing.author || 'Unknown'}</p>
+                  {viewing.notes && (
+                    <p className="mt-3 text-white/80">{viewing.notes}</p>
+                  )}
+                  {viewing.pdf && (
+                    <a
+                      href={viewing.pdf}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 px-4 py-2 shadow hover:shadow-fuchsia-500/30"
+                    >
+                      Read PDF
+                    </a>
                   )}
                 </div>
               </div>
-              <div className="md:col-span-3 space-y-3">
-                <h1 className="text-3xl font-serif tracking-wide text-slate-900">{selected.title}</h1>
-                <p className="text-slate-800"><span className="font-semibold">Author:</span> {selected.author || 'Unknown'}</p>
-                <p className="text-slate-800"><span className="font-semibold">Genre:</span> {selected.genre || 'General'}</p>
-                {selected.description && (
-                  <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{selected.description}</p>
-                )}
-                {selected.pdfUrl && (
-                  <a href={selected.pdfUrl} download className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gradient-to-b from-amber-300 to-amber-500 text-slate-900 shadow hover:shadow-md transition">Download PDF</a>
-                )}
-                <div className="pt-4 flex gap-3">
-                  <button onClick={() => setRoute('home')} className="px-4 py-2 rounded-lg border border-amber-300 bg-white/70 hover:bg-white shadow-sm transition">Close</button>
-                  <button onClick={() => setRoute('edit')} className="px-4 py-2 rounded-lg bg-gradient-to-b from-amber-300 to-amber-500 text-slate-900 shadow hover:shadow-md transition">Edit</button>
-                  <button onClick={() => { handleDelete(selected); setRoute('home'); }} className="px-4 py-2 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 shadow-sm transition">Delete</button>
-                </div>
-              </div>
-            </div>
-          </section>
+            </motion.div>
+          </motion.div>
         )}
-      </main>
+      </AnimatePresence>
 
-      <footer className="border-t border-amber-200 bg-white/70 backdrop-blur mt-12">
-        <div className="max-w-6xl mx-auto px-4 py-6 text-sm text-amber-900/80 flex items-center justify-between">
-          <p>© {new Date().getFullYear()} The Grand Library</p>
-          <p className="text-amber-900/70">Crafted with care</p>
+      <footer className="relative border-t border-white/10/10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 text-center text-white/60">
+          Crafted for wanderers of words. May your shelves be ever luminous.
         </div>
       </footer>
     </div>
   );
 }
-
-export default App;
