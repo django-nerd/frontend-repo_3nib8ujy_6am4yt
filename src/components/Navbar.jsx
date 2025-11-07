@@ -4,8 +4,10 @@ import { Home, PlusCircle, BookOpen } from 'lucide-react';
 const NavItem = ({ active, icon: Icon, label, onClick }) => (
   <button
     onClick={onClick}
-    className={`inline-flex items-center gap-2 px-4 py-2 rounded-md transition-colors duration-150 ${
-      active ? 'bg-indigo-600 text-white' : 'text-slate-700 hover:bg-slate-100'
+    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 shadow-sm border ${
+      active
+        ? 'bg-gradient-to-b from-amber-300 to-amber-500 text-slate-900 border-amber-300 shadow'
+        : 'text-amber-900 border-amber-200 bg-white/70 hover:bg-white hover:shadow'
     }`}
     aria-current={active ? 'page' : undefined}
   >
@@ -16,13 +18,13 @@ const NavItem = ({ active, icon: Icon, label, onClick }) => (
 
 const Navbar = ({ current, onNavigate }) => {
   return (
-    <header className="sticky top-0 z-20 w-full backdrop-blur bg-white/70 border-b border-slate-200">
+    <header className="sticky top-0 z-20 w-full backdrop-blur bg-white/70 border-b border-amber-200/80">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-b from-amber-300 to-amber-500 flex items-center justify-center text-slate-900 shadow">
             <BookOpen size={18} />
           </div>
-          <span className="text-lg font-semibold text-slate-900">Book Manager</span>
+          <span className="text-lg md:text-xl font-serif tracking-wide text-slate-900">The Grand Library</span>
         </div>
         <nav className="flex items-center gap-2">
           <NavItem
@@ -39,6 +41,7 @@ const Navbar = ({ current, onNavigate }) => {
           />
         </nav>
       </div>
+      <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
     </header>
   );
 };

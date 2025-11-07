@@ -2,8 +2,8 @@ import React from 'react';
 import BookCard from './BookCard';
 
 const EmptyState = () => (
-  <div className="text-center py-16 border-2 border-dashed border-slate-200 rounded-xl bg-white">
-    <p className="text-slate-600">No books yet. Click "Add Book" to create your first one.</p>
+  <div className="text-center py-16 border-2 border-dashed border-amber-200 rounded-2xl bg-white/70 shadow-inner">
+    <p className="text-amber-900/80">No tomes yet. Select "Add Book" to scribe your first entry.</p>
   </div>
 );
 
